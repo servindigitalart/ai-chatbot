@@ -14,4 +14,4 @@ RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 8005
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8005", "--workers", "2"]
+CMD ["sh", "-c", "uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8005} --workers 2"]
