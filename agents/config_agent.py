@@ -2,7 +2,7 @@ import json
 import structlog
 from pathlib import Path
 
-import google.genai as genai
+import google.generativeai as genai
 
 from core.config import settings
 
@@ -14,7 +14,8 @@ CHATBOT_PATTERNS = _patterns_path.read_text() if _patterns_path.exists() else ""
 
 class ConfigAgent:
     def __init__(self):
-        self.client = genai.Client(api_key=settings.gemini_api_key)
+        genai.configure(api_key=settings.gemini_api_key)
+        self._model = genai.GenerativeModel("gemini-2.0-flash")
 
     async def generate_chatbot_config(self, clinic: dict) -> dict:
         """
@@ -61,10 +62,7 @@ Requirements:
 """
         for attempt in range(2):
             try:
-                response = self.client.models.generate_content(
-                    model="gemini-2.0-flash",
-                    contents=prompt,
-                )
+                response = self._model.generate_content(prompt)
                 result = self._parse_json_response(response.text)
 
                 # Enforce constraints
@@ -133,10 +131,7 @@ Write a complete system prompt (400-600 words) that includes:
 
 Return ONLY the system prompt text, no JSON wrapper.
 """
-        response = self.client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt,
-        )
+        response = self._model.generate_content(prompt)
         return response.text.strip()
 
     async def suggest_faq_improvements(
@@ -171,10 +166,7 @@ Suggest 5 new FAQs or improvements. Return ONLY valid JSON array:
   }}
 ]
 """
-        response = self.client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt,
-        )
+        response = self._model.generate_content(prompt)
         return self._parse_json_response(response.text)
 
     async def generate_bot_name(self, clinic: dict) -> str:
@@ -189,10 +181,7 @@ Options: a neutral human name (Maya, Alex, Jordan) OR a branded name \
 ("{clinic.get('name', '').split()[0]} Assistant").
 Return ONLY the name, nothing else. Max 20 characters.
 """
-        response = self.client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt,
-        )
+        response = self._model.generate_content(prompt)
         name = response.text.strip().strip('"').strip("'")
         return name[:20]
 

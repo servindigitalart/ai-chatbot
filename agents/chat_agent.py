@@ -1,8 +1,7 @@
 import json
 import re
 
-import google.genai as genai
-import google.genai.types as types
+import google.generativeai as genai
 import structlog
 
 from core.config import settings
@@ -30,7 +29,7 @@ class ChatAgent:
          scheduling_enabled, scheduling_url, ...}
         """
         self.config = config
-        self.client = genai.Client(api_key=settings.gemini_api_key)
+        genai.configure(api_key=settings.gemini_api_key)
 
     def detect_intent(self, message: str) -> tuple[str, float]:
         """
@@ -72,22 +71,24 @@ class ChatAgent:
                 "\n\nThe user has been chatting for a while. "
                 "Naturally ask for their name and email to follow up. "
                 "Do it conversationally, not as a form. "
-                "Example: 'By the way, what\u2019s the best email to reach you?'"
+                "Example: 'By the way, what’s the best email to reach you?'"
             )
 
         gemini_history = self.build_gemini_history(history)
 
-        response = await self.client.aio.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=gemini_history + [{"role": "user", "parts": [{"text": message}]}],
-            config=types.GenerateContentConfig(
-                system_instruction=system_prompt,
+        model = genai.GenerativeModel(
+            "gemini-2.0-flash",
+            system_instruction=system_prompt,
+            generation_config=genai.types.GenerationConfig(
                 max_output_tokens=512,
                 temperature=0.7,
             ),
         )
+        response = await model.generate_content_async(
+            gemini_history + [{"role": "user", "parts": [{"text": message}]}]
+        )
 
-        reply_text = response.candidates[0].content.parts[0].text
+        reply_text = response.text
 
         suggested_actions = self._build_suggested_actions(intent, message_count)
 
@@ -136,16 +137,16 @@ Rules:
 - urgency=low if just browsing/general questions
 - notes should be concise, 1 sentence max
 """
-        response = await self.client.aio.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
+        model = genai.GenerativeModel(
+            "gemini-2.0-flash",
+            generation_config=genai.types.GenerationConfig(
                 max_output_tokens=256,
                 temperature=0.1,
             ),
         )
+        response = await model.generate_content_async(prompt)
 
-        raw = response.candidates[0].content.parts[0].text
+        raw = response.text
         try:
             result = self._parse_json(raw)
         except (ValueError, json.JSONDecodeError):
