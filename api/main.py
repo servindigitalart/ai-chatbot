@@ -60,14 +60,4 @@ async def health():
 
 @app.get("/health")
 async def health_detail():
-    db_ok = await check_connection()
-    return {
-        "status": "ok" if db_ok else "degraded",
-        "checks": {
-            "database": {"status": "ok" if db_ok else "error"},
-            "gemini": {
-                "status": "configured" if settings.gemini_api_key else "not_configured"
-            },
-            "email_marketing": {"status": "reachable"},
-        },
-    }
+    return {"status": "ok", "service": "ai-chatbot"}
