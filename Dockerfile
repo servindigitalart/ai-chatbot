@@ -15,4 +15,4 @@ RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 8005
-CMD ["sh", "-c", "uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8005} --workers 2"]
+CMD ["sh", "-c", "python -c 'import api.main; print(\"Import OK\")' 2>&1 && uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8005} --workers 2"]
